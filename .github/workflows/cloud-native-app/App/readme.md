@@ -45,7 +45,7 @@ A simple FastAPI application demonstrating cloud-native development with Docker 
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Test the endpoints:
+Testing the endpoints:
 - Health: `curl http://localhost:8000/health`
 - Hello: `curl http://localhost:8000/api/hello`
 
@@ -98,28 +98,53 @@ docker run -p 8000:8000 cloud-native-app
 
 ## CI/CD
 
-The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that:
-- Runs tests on push/PR
-- Builds and pushes Docker image to GCR
-- Deploys to GKE
+The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that automates:
+- Tests on push/PR
+- Docker build and push to GCR
+- Deployment to GKE
 
-### Setup Secrets
+**Note**: Automated CI/CD requires Workload Identity Federation setup. On trial Google Cloud accounts with org policies blocking OIDC provider creation, use manual deployment (see below).
 
-Add these to your GitHub repo secrets:
-- `GCP_PROJECT_ID`: Your Google Cloud Project ID
-- `GCP_SA_KEY`: JSON key for a service account with GKE and GCR permissions
+## Manual Deployment (For Trial Accounts / Local Setup)
+
+1. **Build Docker image**:
+   ```bash
+   cd .github/workflows/cloud-native-app/App
+   docker build -t cloud-native-app .
+   ```
+
+2. **Tag for GCR**:
+   ```bash
+   docker tag cloud-native-app gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
+   ```
+
+3. **Push to GCR**:
+   ```bash
+   gcloud auth configure-docker
+   docker push gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
+   ```
+
+4. **Connect to GKE cluster**:
+   ```bash
+   gcloud container clusters get-credentials my-cluster --zone us-central1-a --project YOUR_PROJECT_ID
+   ```
+
+5. **Update deployment image** in `k8s/deployment.yaml`:
+   ```yaml
+   image: gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
+   ```
+
+6. **Deploy to Kubernetes**:
+   ```bash
+   kubectl apply -f ../k8s/
+   ```
+
+7. **Get service IP**:
+   ```bash
+   kubectl get services cloud-native-app-service
+   ```
 
 ## Environment Variables
 
 - `ENV`: Set to "prod" in production (defaults to "dev")
 
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch
-3. Make changes and add tests
-4. Submit a PR
-
-## License
-
-MIT
