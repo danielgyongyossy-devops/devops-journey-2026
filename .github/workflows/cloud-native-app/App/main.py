@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from datetime import datetime
+from datetime import datetime, timezone
 import socket
 import os
 
@@ -9,7 +9,7 @@ app = FastAPI()
 def health():
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         "hostname": socket.gethostname()
     }
 
