@@ -17,7 +17,7 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) t
 - Docker build and push to GCR
 - Deployment to GKE
 
-**Note**: Automated CI/CD requires Workload Identity Federation setup. On trial Google Cloud accounts with org policies blocking OIDC provider creation, Alternatively use manual deployment
+**Note**: Automated CI/CD requires Workload Identity Federation setup. I have trial Google Cloud account with org policies blocking OIDC provider creation, Alternatively use manual deployment
  
  
 Next steps in progress:
