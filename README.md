@@ -21,6 +21,6 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) t
  
  
 Next steps in progress:
--Terraform usage
--AWS multicloud deployment
--monitoring(Grafana),Helm etc implementations
+Terraform usage,
+AWS multicloud deployment,
+monitoring(Grafana),Helm etc implementations
