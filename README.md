@@ -18,6 +18,8 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) t
 - Deployment to GKE
 
 **Note**: Automated CI/CD requires Workload Identity Federation setup. On trial Google Cloud accounts with org policies blocking OIDC provider creation, Alternatively use manual deployment
+ 
+ 
 Next steps in progress:
 -Terraform usage
 -AWS multicloud deployment
