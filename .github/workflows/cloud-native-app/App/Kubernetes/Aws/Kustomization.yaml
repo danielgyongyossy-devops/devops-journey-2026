@@ -1,0 +1,7 @@
+resources:
+  - ../Base
+
+images:
+  - name: PLACEHOLDER_IMAGE
+    newName: gcr.io/4924-1387-6690/cloud-native-app
+    newTag: latest

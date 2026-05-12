@@ -73,22 +73,25 @@ docker run -p 8000:8000 cloud-native-app
 
 ### Prerequisites
 
-- GKE cluster created
+- Kubernetes cluster created (EKS/GKE)
 - kubectl configured
 
 ### Deploy
 
-1. Tag and push image to GCR:
+1. Build/push your image to your registry (example below uses GCR):
    ```bash
    docker tag cloud-native-app gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
    docker push gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
    ```
 
-2. Update `k8s/deployment.yaml` with your project ID.
+2. Update the image tag using your kustomize overlay (recommended).
+   Your manifests are here:
+   - `Kubernetes/base/deployment.yaml`
+   - `Kubernetes/Aws/` or `Kubernetes/Gcp/`
 
-3. Apply manifests:
+3. Apply manifests (GCP example):
    ```bash
-   kubectl apply -f ../k8s/
+   kubectl apply -k Kubernetes/Gcp
    ```
 
 4. Get service IP:
@@ -144,7 +147,37 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) t
    kubectl get services cloud-native-app-service
    ```
 
+## Monitoring (Grafana + Prometheus)
+
+This project supports monitoring using **kube-prometheus-stack** (Grafana + Prometheus).
+
+### 1) What we added
+- Your app exposes Prometheus metrics:
+  - `GET /metrics`
+- Kubernetes scraping is configured with:
+  - `Kubernetes/base/service-monitor.yaml`
+
+### 2) Install monitoring (per cluster)
+```bash
+kubectl create namespace monitoring || true
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n monitoring -f monitoring/kube-prometheus-stack-values.yaml
+```
+
+### 3) Open Grafana (internal only)
+```bash
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+```
+Then open:
+- http://localhost:3000
+
+Login:
+- user: `admin`
+- password: `admin`
+
+For the full monitoring guide, see:
+- `../../../../monitoring/README.md`
 ## Environment Variables
 
 - `ENV`: Set to "prod" in production (defaults to "dev")
-

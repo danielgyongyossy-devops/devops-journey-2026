@@ -1,0 +1,76 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: cloud-native-app
+  EKS_CLUSTER: cloud-native-app-cluster
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        cd .github/workflows/cloud-native-app/App
+        pip install -r requirements.txt
+    - name: Run tests
+      run: |
+        cd .github/workflows/cloud-native-app/App
+        pytest
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}  # From Terraform output
+        aws-region: ${{ env.AWS_REGION }}
+    - name: Login to ECR
+      run: |
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $492413876690.dkr.ecr.$AWS_REGION.amazonaws.com
+    - name: Build and push Docker image
+      run: |
+        cd .github/workflows/cloud-native-app/App
+        docker build -t $ECR_REPOSITORY:$GITHUB_SHA .
+        docker tag $ECR_REPOSITORY:$GITHUB_SHA $492413876690.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$GITHUB_SHA
+        docker tag $ECR_REPOSITORY:$GITHUB_SHA $492413876690.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+        docker push $492413876690.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$GITHUB_SHA
+        docker push $492413876690.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v3
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+    - name: Update kustomize image tag
+      run: |
+        sed -i 's/newTag: latest/newTag: '$GITHUB_SHA'/' .github/workflows/cloud-native-app/App/Kubernetes/Aws/Kustomization.yaml
+    - name: Deploy to EKS (kustomize)
+      run: kubectl apply -k .github/workflows/cloud-native-app/App/Kubernetes/Aws

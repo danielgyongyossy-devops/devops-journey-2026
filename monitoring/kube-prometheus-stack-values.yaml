@@ -1,0 +1,13 @@
+grafana:
+  service:
+    type: ClusterIP
+  # For demo convenience; for production use an existing Secret
+  adminPassword: "admin"
+
+prometheus:
+  service:
+    type: ClusterIP
+
+# Optional but useful for shorter feedback loops in demos
+prometheus-node-exporter:
+  tolerations: []
