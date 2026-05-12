@@ -43,6 +43,10 @@ jobs:
       with:
         workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
         service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+    - name: Verify auth (gcloud auth)
+      run: |
+        gcloud auth list
+        gcloud auth print-access-token | head -c 20
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker --quiet
     - name: Build and push Docker image
