@@ -18,10 +18,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        cd App
+        cd .github/workflows/cloud-native-app/App
         pip install -r requirements.txt
 
     - name: Run tests
       run: |
-        cd App
+        cd .github/workflows/cloud-native-app/App
         pytest
