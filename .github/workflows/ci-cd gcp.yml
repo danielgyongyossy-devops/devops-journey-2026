@@ -12,8 +12,8 @@ permissions:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GKE_CLUSTER: my-cluster  # Update this to your actual cluster name
-  GKE_ZONE: us-central1-a  # Update this to your actual cluster zone or region
+  GKE_CLUSTER: my-cluster  
+  GKE_ZONE: us-central1-a  
   IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/cloud-native-app
 
 jobs:

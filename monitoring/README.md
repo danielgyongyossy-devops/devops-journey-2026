@@ -36,5 +36,5 @@ Login:
 3. Confirm Prometheus has a target for `cloud-native-app`.
 
 Notes:
-- The app `ServiceMonitor` is deployed by your kustomize manifests from:
+- The app `ServiceMonitor` is deployed  kustomize manifests from:
   - `App/Kubernetes/base/service-monitor.yaml`
