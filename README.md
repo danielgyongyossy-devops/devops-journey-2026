@@ -16,11 +16,13 @@ The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) t
 - Tests on push/PR
 - Docker build and push to GCR
 - Deployment to GKE
+- Auth working
+- monitoring functional.
+- 
 
-**Note**: Automated CI/CD requires Workload Identity Federation setup. I have trial Google Cloud account with org policies blocking OIDC provider creation, Alternatively use manual deployment
  
  
 Next steps in progress:
 Terraform usage,
 AWS multicloud deployment,
-monitoring(Grafana),Helm etc implementations
+
