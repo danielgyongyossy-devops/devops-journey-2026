@@ -46,7 +46,7 @@ Provision  GCP environment before deploying the app.
 - docker build -t cloud-native-app ./App
 - docker run -p 8000:8000 cloud-native-app
 🤖 CI/CD Pipeline
-The project uses a sophisticated GitHub Actions workflow (.github/workflows/ci-cd.yml):
+The project uses a  GitHub Actions workflow (.github/workflows/ci-cd gcp.yml):
 
 - Test: Runs pytest on every Pull Request.
 
