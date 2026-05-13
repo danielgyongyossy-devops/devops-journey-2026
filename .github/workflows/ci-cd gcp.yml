@@ -113,7 +113,7 @@ jobs:
       - name: Update kustomize image tag
         run: |
           sed -i "s/newTag: latest/newTag: $GITHUB_SHA/" \
-          .github/workflows/cloud-native-app/App/Kubernetes/Gcp/Kustomization.yaml
+          .github/workflows/cloud-native-app/App/Kubernetes/Gcp/kustomization.yaml
 
       - name: Deploy to GKE
         run: |
