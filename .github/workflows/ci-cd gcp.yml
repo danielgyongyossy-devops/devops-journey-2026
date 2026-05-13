@@ -60,10 +60,11 @@ jobs:
       run: gcloud auth configure-docker --quiet
     - name: Build and push Docker image
       run: |
-        docker buildx build --load -t $IMAGE:$GITHUB_SHA .github/workflows/cloud-native-app/App
-        docker tag $IMAGE:$GITHUB_SHA $IMAGE:latest
-        docker push $IMAGE:$GITHUB_SHA
-        docker push $IMAGE:latest
+        cd .github/workflows/cloud-native-app/App
+        docker build -t "$IMAGE:$GITHUB_SHA" .
+        docker tag "$IMAGE:$GITHUB_SHA" "$IMAGE:latest"
+        docker push "$IMAGE:$GITHUB_SHA"
+        docker push "$IMAGE:latest"
 
   deploy:
     needs: build-and-push
