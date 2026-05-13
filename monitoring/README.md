@@ -1,7 +1,7 @@
 # Monitoring (Grafana + Prometheus) - kube-prometheus-stack
 
 This repo deploys **Grafana** and **Prometheus** using the Helm chart **kube-prometheus-stack**.
-Your app exposes Prometheus metrics at **GET /metrics** and includes a **ServiceMonitor** so Prometheus can scrape it.
+This app exposes Prometheus metrics at **GET /metrics** and includes a **ServiceMonitor** so Prometheus can scrape it.
 
 ## 1) Prereqs
 - `helm`
@@ -29,7 +29,7 @@ Login:
 - user: `admin`
 - password: `admin` (see `monitoring/kube-prometheus-stack-values.yaml`)
 
-## 4) Verify your app is scraped
+## 4) Verify the app is scraped
 1. In Grafana, open Prometheus data source / Explore.
 2. Query for metrics from your app. If you just want to confirm scraping:
    - query for HTTP request metrics and/or instrumentator metrics
