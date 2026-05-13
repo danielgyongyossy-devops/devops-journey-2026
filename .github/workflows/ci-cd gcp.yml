@@ -38,6 +38,11 @@ jobs:
     - uses: actions/checkout@v3
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
+    - name: Check WIF secrets are set (no values echoed)
+      run: |
+        if [ -z "${{ secrets.GCP_WIF_PROVIDER }}" ]; then echo "GCP_WIF_PROVIDER is empty/missing"; exit 1; fi
+        if [ -z "${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}" ]; then echo "GCP_WIF_SERVICE_ACCOUNT is empty/missing"; exit 1; fi
+
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v1
       with:
