@@ -1,183 +1,86 @@
-# Cloud Native App
+Cloud-Native DevOps Journey 2026
+A production-grade, multi-cloud ready FastAPI application. This project demonstrates a complete DevOps lifecycle: from local development and containerization to Infrastructure-as-Code (IaC) and Automated GitOps pipelines.
 
-A simple FastAPI application demonstrating cloud-native development with Docker and Kubernetes deployment to Google Kubernetes Engine (GKE).
+🏗️ Architecture Overview
+Application: FastAPI (Python 3.11+)
 
-## Features
+Infrastructure: Google Cloud Platform (VPC, Subnets, GKE, Artifact Registry)
 
-- Health check endpoint (`/health`)
-- Hello world endpoint (`/api/hello`)
-- Containerized with Docker
-- Deployed on Kubernetes with LoadBalancer service
-- Automated CI/CD with GitHub Actions
+IaC: Terraform (Modularized, GCS Backend)
 
-## Prerequisites
+CI/CD: GitHub Actions with Workload Identity Federation (Keyless Auth)
 
-- Python 3.11+
-- Docker
-- Google Cloud SDK (gcloud)
-- kubectl
-- A Google Cloud Project with GKE enabled
+Observability: Prometheus & Grafana (Helm-based)
 
-## Local Development
+🛠️ Tech Stack & Features
+FastAPI: High-performance web framework with /health and /api/hello endpoints.
 
-### Setup
+Terraform: Fully automated GCP infrastructure provisioning.
 
-1. Clone the repository:
-   ```bash
-   git clone <your-repo-url>
-   cd .github/workflows/cloud-native-app/App
-   ```
+Docker: Multi-stage builds for optimized image sizes.
 
-2. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+Kubernetes (GKE): Orchestrated deployment with LoadBalancer services and autoscaling.
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Security: Keyless authentication via OIDC/Workload Identity Federation.
 
-### Run Locally
+Monitoring: Custom ServiceMonitor for automated metric scraping.
 
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
+🚀 Getting Started
+1. Infrastructure Provisioning (Terraform)
+Provision your GCP environment before deploying the app.
 
-Testing the endpoints:
-- Health: `curl http://localhost:8000/health`
-- Hello: `curl http://localhost:8000/api/hello`
-
-### Run Tests
-
-```bash
-pytest
-```
-
-## Docker
-
-### Build Image
-
-```bash
-docker build -t cloud-native-app .
-```
-
-### Run Container
-
-```bash
+Bash
+cd Terraform/gcp
+terraform init
+terraform plan
+terraform apply
+2. Local Development
+Bash
+cd App
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+3. Manual Container Build
+Bash
+docker build -t cloud-native-app ./App
 docker run -p 8000:8000 cloud-native-app
-```
+🤖 CI/CD Pipeline
+The project uses a sophisticated GitHub Actions workflow (.github/workflows/ci-cd.yml):
 
-## Kubernetes Deployment
+Test: Runs pytest on every Pull Request.
 
-### Prerequisites
+Infra: (Optional) Validates Terraform plans.
 
-- Kubernetes cluster created (EKS/GKE)
-- kubectl configured
+Build: Packages the Docker image and pushes to Google Artifact Registry.
 
-### Deploy
+Deploy: Updates the GKE cluster using kubectl and Kustomize.
 
-1. Build/push your image to your registry (example below uses GCR):
-   ```bash
-   docker tag cloud-native-app gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
-   docker push gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
-   ```
+[!IMPORTANT]
 
-2. Update the image tag using your kustomize overlay (recommended).
-   Your manifests are here:
-   - `Kubernetes/base/deployment.yaml`
-   - `Kubernetes/Aws/` or `Kubernetes/Gcp/`
+Auth: This project uses Workload Identity Federation. No Service Account JSON keys are stored in GitHub Secrets, significantly improving security.
 
-3. Apply manifests (GCP example):
-   ```bash
-   kubectl apply -k Kubernetes/Gcp
-   ```
+📈 Monitoring & Observability
+The app is "observability-aware" and exposes metrics for Prometheus.
 
-4. Get service IP:
-   ```bash
-   kubectl get services cloud-native-app-service
-   ```
-
-## CI/CD
-
-The project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that automates:
-- Tests on push/PR
-- Docker build and push to GCR
-- Deployment to GKE
-
-**Note**: Automated CI/CD requires Workload Identity Federation setup. On trial Google Cloud accounts with org policies blocking OIDC provider creation, use manual deployment (see below).
-
-## Manual Deployment (For Trial Accounts / Local Setup)
-
-1. **Build Docker image**:
-   ```bash
-   cd .github/workflows/cloud-native-app/App
-   docker build -t cloud-native-app .
-   ```
-
-2. **Tag for GCR**:
-   ```bash
-   docker tag cloud-native-app gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
-   ```
-
-3. **Push to GCR**:
-   ```bash
-   gcloud auth configure-docker
-   docker push gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
-   ```
-
-4. **Connect to GKE cluster**:
-   ```bash
-   gcloud container clusters get-credentials my-cluster --zone us-central1-a --project YOUR_PROJECT_ID
-   ```
-
-5. **Update deployment image** in `k8s/deployment.yaml`:
-   ```yaml
-   image: gcr.io/YOUR_PROJECT_ID/cloud-native-app:latest
-   ```
-
-6. **Deploy to Kubernetes**:
-   ```bash
-   kubectl apply -f ../k8s/
-   ```
-
-7. **Get service IP**:
-   ```bash
-   kubectl get services cloud-native-app-service
-   ```
-
-## Monitoring (Grafana + Prometheus)
-
-This project supports monitoring using **kube-prometheus-stack** (Grafana + Prometheus).
-
-### 1) What we added
-- Your app exposes Prometheus metrics:
-  - `GET /metrics`
-- Kubernetes scraping is configured with:
-  - `Kubernetes/base/service-monitor.yaml`
-
-### 2) Install monitoring (per cluster)
-```bash
-kubectl create namespace monitoring || true
+Deploy the Monitoring Stack
+Bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n monitoring -f monitoring/kube-prometheus-stack-values.yaml
-```
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace \
+  -f monitoring/values.yaml
+Access Dashboards
+Bash
+kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
+URL: http://localhost:3000 (User: admin / Pass: prom-operator)
 
-### 3) Open Grafana (internal only)
-```bash
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
-```
-Then open:
-- http://localhost:3000
+🗺️ Roadmap & Multi-Cloud
+[x] GCP Infrastructure via Terraform
 
-Login:
-- user: `admin`
-- password: `admin`
+[x] GKE Deployment with GitHub Actions
 
-For the full monitoring guide, see:
-- `../../../../monitoring/README.md`
-## Environment Variables
+[x] Prometheus/Grafana Integration
 
-- `ENV`: Set to "prod" in production (defaults to "dev")
+[ ] Next Step: AWS EKS Deployment (Terraform modules in progress)
+
+[ ] Next Step: Cross-cloud Load Balancing with Anthos or Istio
