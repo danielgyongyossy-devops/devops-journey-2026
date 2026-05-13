@@ -1,5 +1,5 @@
 resources:
-  - ../base
+  - ../Base
 
 images:
   - name: PLACEHOLDER_IMAGE
