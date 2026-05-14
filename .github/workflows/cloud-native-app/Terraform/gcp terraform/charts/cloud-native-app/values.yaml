@@ -1,0 +1,26 @@
+replicaCount: 2
+
+image:
+  repository: us-central1-docker.pkg.dev/project-cd1ffba6-d5fa-4312-86f/cloud-native-app/cloud-native-app
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 8000
+  initialDelaySeconds: 15
+  periodSeconds: 20
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 8000
+  initialDelaySeconds: 15
+  periodSeconds: 20

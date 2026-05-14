@@ -1,9 +1,10 @@
-terraform {
+/* terraform {
   backend "gcs" {
     bucket = "terraform-state-devops-journey"
     prefix = "gcp"
   }
 }
+*/
 
 # Network module: Create VPC and subnet
 module "network" {

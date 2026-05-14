@@ -18,3 +18,5 @@ output "cluster_ca_certificate" {
   sensitive   = true
   description = "Cluster CA certificate"
 }
+
+
