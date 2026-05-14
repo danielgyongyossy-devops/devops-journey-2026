@@ -12,9 +12,10 @@ permissions:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GKE_CLUSTER: my-cluster  
+  REGION: us-central1
+  GKE_CLUSTER: cloud-native-cluster  
   GKE_ZONE: us-central1-a  
-  IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/cloud-native-app
+  IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-native-app/cloud-native-app
 
 jobs:
   test:
@@ -41,24 +42,30 @@ jobs:
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
-
+    permissions: # Fontos a WIF-hez!
+      contents: 'read'
+      id-token: 'write'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
 
-      - name: Check WIF secrets are set
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
         run: |
-          if [ -z "${{ secrets.GCP_WIF_PROVIDER }}" ]; then
-            echo "GCP_WIF_PROVIDER is empty/missing"
-            exit 1
-          fi
-
-          if [ -z "${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}" ]; then
-            echo "GCP_WIF_SERVICE_ACCOUNT is empty/missing"
-            exit 1
-          fi
+          cd .github/workflows/cloud-native-app/App
+          # Buildelés a teljes névvel
+          docker build -t "$IMAGE:$GITHUB_SHA" .
+          docker tag "$IMAGE:$GITHUB_SHA" "$IMAGE:latest"
+          
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -90,34 +97,43 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
+      
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          install_components: gke-gcloud-auth-plugin
-
+      
       - name: Get GKE credentials
-        run: |
-          gcloud container clusters get-credentials \
-          $GKE_CLUSTER \
-          --zone $GKE_ZONE \
-          --project $PROJECT_ID
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_ZONE }}
+          project_id: ${{ env.PROJECT_ID }}
 
-      - name: Update kustomize image tag
-        run: |
-          sed -i "s/newTag: latest/newTag: $GITHUB_SHA/" \
-          .github/workflows/cloud-native-app/App/Kubernetes/Gcp/kustomization.yaml
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
 
-      - name: Deploy to GKE
+      
+      - name: Deploy with Helm
         run: |
-          kubectl apply -k \
-          .github/workflows/cloud-native-app/App/Kubernetes/Gcp
+          helm upgrade --install cloud-native-app ./charts/cloud-native-app \
+            --namespace default \
+            --set image.repository=$IMAGE \
+            --set image.tag=$GITHUB_SHA \
+            --set service.targetPort=8000 \
+            --set livenessProbe.httpGet.path=/health \
+            --set readinessProbe.httpGet.path=/health \
+            --wait \
+            --timeout 5m
