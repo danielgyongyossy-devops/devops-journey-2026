@@ -10,6 +10,10 @@ service:
   port: 80
   targetPort: 8000
 
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
 
 livenessProbe:
   httpGet:
