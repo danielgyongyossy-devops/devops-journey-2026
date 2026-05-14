@@ -13,8 +13,8 @@ permissions:
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
-  GKE_CLUSTER: cloud-native-cluster  
-  GKE_ZONE: us-central1-a  
+  GKE_CLUSTER: cloud-native-app-cluster 
+  GKE_LOCATION: us-central1-a  
   IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-native-app/cloud-native-app
 
 jobs:
@@ -116,7 +116,7 @@ jobs:
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ env.GKE_CLUSTER }}
-          location: ${{ env.GKE_ZONE }}
+          location: ${{ env.GKE_LOCATION }}
           project_id: ${{ env.PROJECT_ID }}
 
       
