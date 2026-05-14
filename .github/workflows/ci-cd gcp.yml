@@ -128,7 +128,7 @@ jobs:
       
       - name: Deploy with Helm
         run: |
-          helm upgrade --install cloud-native-app ./charts/cloud-native-app \
+          helm upgrade --install cloud-native-app C:\Users\danie\Documents\GitHub\.github\workflows\cloud-native-app\Terraform\gcp terraform\charts\cloud-native-app \
             --namespace default \
             --set image.repository=$IMAGE \
             --set image.tag=$GITHUB_SHA \
