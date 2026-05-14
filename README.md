@@ -55,6 +55,16 @@ The project uses a  GitHub Actions workflow (.github/workflows/ci-cd gcp.yml):
 - Build: Packages the Docker image and pushes to Google Artifact Registry.
 
 - Deploy: Updates the GKE cluster using kubectl and Kustomize.
+ ## 🚀 Deployment with Helm & GitHub Actions
+
+This project now utilizes **Helm** for consistent, repeatable deployments to Google Kubernetes Engine (GKE). The entire lifecycle is automated through a CI/CD pipeline.
+
+### 🏗️ Infrastructure as Code & Orchestration
+- **Helm Charts**: Used to manage Kubernetes resources (Deployments, Services, etc.) as a single unit.
+- **GitHub Actions**: Automatically triggers on every push to the `main` branch to:
+  1. Run automated tests.
+  2. Build and push the Docker image to **Google Artifact Registry**.
+  3. Deploy/Upgrade the application using `helm upgrade --install`.
 
 [!IMPORTANT]
 
@@ -73,6 +83,7 @@ The app is "observability-aware" and exposes metrics for Prometheus.
 - Bash
 - kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
 - URL: http://localhost:3000 (User: admin / Pass: prom-operator)
+
 
 🗺️ Roadmap & Multi-Cloud
 [x] GCP Infrastructure via Terraform
