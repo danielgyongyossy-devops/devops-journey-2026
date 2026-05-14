@@ -1,9 +1,7 @@
-replicaCount: 2
-
-image:
-  repository: us-central1-docker.pkg.dev/project-cd1ffba6-d5fa-4312-86f/cloud-native-app/cloud-native-app
-  tag: latest
-  pullPolicy: Always
+ image:
+  repository: cloud-native-app
+  pullPolicy: IfNotPresent
+  tag: "latest"
 
 service:
   type: LoadBalancer
@@ -14,6 +12,32 @@ serviceAccount:
   create: true
   annotations: {}
   name: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
 
 livenessProbe:
   httpGet:
