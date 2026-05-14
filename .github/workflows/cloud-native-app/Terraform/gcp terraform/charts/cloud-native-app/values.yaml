@@ -8,6 +8,10 @@ service:
   port: 80
   targetPort: 8000
 
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
 serviceAccount:
   create: true
   annotations: {}
