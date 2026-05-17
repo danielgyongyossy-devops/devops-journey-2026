@@ -1,0 +1,14 @@
+{{- $service := .Values.service | default dict }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cloud-native-app.fullname" . }}
+spec:
+  type: {{ $service.type | default "LoadBalancer" }}
+  ports:
+    - port: {{ $service.port | default 80 }}
+      targetPort: {{ $service.targetPort | default 8000 }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "cloud-native-app.selectorLabels" . | nindent 4 }}

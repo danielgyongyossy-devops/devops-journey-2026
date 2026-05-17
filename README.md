@@ -1,97 +1,148 @@
-Cloud-Native DevOps Journey 2026
-A production-grade, multi-cloud ready FastAPI application. This project demonstrates a complete DevOps lifecycle: from local development and containerization to Infrastructure-as-Code (IaC) and Automated GitOps pipelines.
+# Cloud-Native DevOps Journey 2026
 
-🏗️ Architecture Overview
-- Application: FastAPI (Python 3.11+)
+A FastAPI app deployed the cloud-native way: Docker, Terraform, Kubernetes, Helm, and GitHub Actions.
 
-- Infrastructure: Google Cloud Platform (VPC, Subnets, GKE, Artifact Registry)
+It started on GCP, and now it also deploys to AWS. The same app image gets built in CI and shipped to both GKE and EKS without long-lived cloud keys sitting in GitHub.
 
-- IaC: Terraform (Modularized, GCS Backend)
+## What It Runs On
 
-- CI/CD: GitHub Actions with Workload Identity Federation (Keyless Auth)
+- FastAPI app on Python 3.11
+- Docker container image
+- Terraform for cloud infrastructure
+- GCP: VPC, GKE, Artifact Registry
+- AWS: VPC, EKS, ECR
+- Helm for Kubernetes deployment
+- GitHub Actions for CI/CD
+- OIDC-based auth for both clouds
+- Prometheus and Grafana for monitoring
 
-- Observability: Prometheus & Grafana (Helm-based)
+## CI/CD
 
-🛠️ Tech Stack & Features
-- FastAPI: High-performance web framework with /health and /api/hello endpoints.
+The main workflow is:
 
-- Terraform: Fully automated GCP infrastructure provisioning.
+```text
+.github/workflows/ci-cd-multicloud.yml
+```
 
-- Docker: Multi-stage builds for optimized image sizes.
+On pull requests, it runs the tests.
 
-- Kubernetes (GKE): Orchestrated deployment with LoadBalancer services and autoscaling.
+On pushes to `main`, it:
 
-- Security: Keyless authentication via OIDC/Workload Identity Federation.
+1. Runs the FastAPI tests.
+2. Builds the Docker image.
+3. Pushes the image to Google Artifact Registry.
+4. Pushes the image to Amazon ECR.
+5. Deploys to GKE with Helm.
+6. Deploys to EKS with Helm.
 
-- Monitoring: Custom ServiceMonitor for automated metric scraping.
+Both cloud deploys use GitHub OIDC, so there are no service account JSON files or AWS access keys stored in the repo.
 
-🚀 Getting Started
-1. Infrastructure Provisioning (Terraform)
-Provision  GCP environment before deploying the app.
+Required GitHub Actions secrets:
 
-- Bash
-- cd Terraform/gcp
-- terraform init
-- terraform plan
-- terraform apply
-2. Local Development
-- Bash
-- cd App
-- python -m venv venv
-- source venv/bin/activate
-- pip install -r requirements.txt
-- uvicorn main:app --reload
-3. Manual Container Build
-- Bash
-- docker build -t cloud-native-app ./App
-- docker run -p 8000:8000 cloud-native-app
-🤖 CI/CD Pipeline
-The project uses a  GitHub Actions workflow (.github/workflows/ci-cd gcp.yml):
+```text
+GCP_PROJECT_ID
+GCP_WIF_PROVIDER
+GCP_WIF_SERVICE_ACCOUNT
+AWS_ROLE_ARN
+```
 
-- Test: Runs pytest on every Pull Request.
+## Local App
 
-- Infra: (Optional) Validates Terraform plans.
+```bash
+cd app
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-- Build: Packages the Docker image and pushes to Google Artifact Registry.
+The app exposes:
 
-- Deploy: Updates the GKE cluster using kubectl and Kustomize.
- ## 🚀 Deployment with Helm & GitHub Actions
+```text
+/health
+/api/hello
+```
 
-This project now utilizes **Helm** for consistent, repeatable deployments to Google Kubernetes Engine (GKE). The entire lifecycle is automated through a CI/CD pipeline.
+## Terraform
 
-### 🏗️ Infrastructure as Code & Orchestration
-- **Helm Charts**: Used to manage Kubernetes resources (Deployments, Services, etc.) as a single unit.
-- **GitHub Actions**: Automatically triggers on every push to the `main` branch to:
-  1. Run automated tests.
-  2. Build and push the Docker image to **Google Artifact Registry**.
-  3. Deploy/Upgrade the application using `helm upgrade --install`.
+GCP infrastructure lives here:
 
-[!IMPORTANT]
+```text
+infra/terraform/gcp
+```
 
-Auth: This project uses Workload Identity Federation. No Service Account JSON keys are stored in GitHub Secrets, significantly improving security.
+AWS infrastructure lives here:
 
-📈 Monitoring & Observability
-The app is "observability-aware" and exposes metrics for Prometheus.
+```text
+infra/terraform/aws
+```
 
-- Deploy the Monitoring Stack
-- Bash
-- helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-- helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
--   --namespace monitoring --create-namespace \
--   -f monitoring/values.yaml
-- Access Dashboards
-- Bash
-- kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
-- URL: http://localhost:3000 (User: admin / Pass: prom-operator)
+Typical flow:
 
+```bash
+terraform init
+terraform fmt
+terraform plan
+terraform apply
+```
 
-🗺️ Roadmap & Multi-Cloud
-[x] GCP Infrastructure via Terraform
+For AWS, after apply:
 
-[x] GKE Deployment with GitHub Actions
+```bash
+terraform output -raw github_role_arn
+```
 
-[x] Prometheus/Grafana Integration
+That value goes into the GitHub secret named `AWS_ROLE_ARN`.
 
-[ ] Next Step: AWS EKS Deployment (Terraform modules in progress)
+## Project Layout
 
-[ ] Next Step: Cross-cloud Load Balancing with Anthos or Istio
+```text
+app/                  FastAPI app and Dockerfile
+tests/                pytest tests
+charts/               Helm chart used by both clouds
+k8s/                  raw Kubernetes/Kustomize manifests
+infra/terraform/gcp/  GCP infrastructure
+infra/terraform/aws/  AWS infrastructure
+monitoring/           Prometheus/Grafana values and notes
+.github/workflows/    GitHub Actions workflows only
+```
+
+## Monitoring
+
+The monitoring stack uses Prometheus and Grafana:
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace \
+  -f monitoring/kube-prometheus-stack-values.yaml
+```
+
+Access Grafana:
+
+```bash
+kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
+```
+
+Then open:
+
+```text
+http://localhost:3000
+```
+
+## Current Status
+
+- [x] GCP infrastructure with Terraform
+- [x] GKE deployment with GitHub Actions
+- [x] AWS infrastructure with Terraform
+- [x] EKS deployment with GitHub Actions
+- [x] Helm-based app deployment
+- [x] OIDC auth for GCP and AWS
+- [x] Prometheus/Grafana monitoring
+
+Next things worth exploring:
+
+- remote Terraform state for AWS
+- tighter IAM policies
+- app-level metrics dashboard
+- multi-cloud traffic routing or failover

@@ -1,0 +1,8 @@
+resources:
+  - ../base
+
+images:
+  - name: PLACEHOLDER_IMAGE
+    newName: cloud-native-app
+    newTag: latest
+    

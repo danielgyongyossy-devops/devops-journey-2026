@@ -1,0 +1,180 @@
+name: CI/CD Multi-Cloud
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  APP_DIR: app
+  HELM_CHART: charts/cloud-native-app
+  RELEASE_NAME: cloud-native-app
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  GKE_CLUSTER: cloud-native-app-cluster
+  GKE_LOCATION: us-central1-a
+  GCP_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-native-app/cloud-native-app
+  AWS_REGION: us-east-1
+  AWS_ECR_REPOSITORY: cloud-native-app
+  EKS_CLUSTER: cloud-native-app-cluster
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd "$APP_DIR"
+          pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          PYTHONPATH: app
+        run: pytest tests
+
+  build-gcp:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - name: Build and push GCP image
+        run: |
+          cd "$APP_DIR"
+          docker build -t "$GCP_IMAGE:$GITHUB_SHA" .
+          docker tag "$GCP_IMAGE:$GITHUB_SHA" "$GCP_IMAGE:latest"
+          docker push "$GCP_IMAGE:$GITHUB_SHA"
+          docker push "$GCP_IMAGE:latest"
+
+  build-aws:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push AWS image
+        env:
+          AWS_IMAGE: ${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPOSITORY }}
+        run: |
+          cd "$APP_DIR"
+          docker build -t "$AWS_IMAGE:$GITHUB_SHA" .
+          docker tag "$AWS_IMAGE:$GITHUB_SHA" "$AWS_IMAGE:latest"
+          docker push "$AWS_IMAGE:$GITHUB_SHA"
+          docker push "$AWS_IMAGE:latest"
+
+  deploy-gcp:
+    needs: build-gcp
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_LOCATION }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Deploy to GKE with Helm
+        run: |
+          helm upgrade --install "$RELEASE_NAME" "$HELM_CHART" \
+            --namespace default \
+            --set image.repository="$GCP_IMAGE" \
+            --set image.tag="$GITHUB_SHA" \
+            --set service.type=LoadBalancer \
+            --set service.port=80 \
+            --set service.targetPort=8000 \
+            --wait \
+            --timeout 5m
+
+  deploy-aws:
+    needs: build-aws
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Deploy to EKS with Helm
+        env:
+          AWS_IMAGE: ${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPOSITORY }}
+        run: |
+          helm upgrade --install "$RELEASE_NAME" "$HELM_CHART" \
+            --namespace default \
+            --set image.repository="$AWS_IMAGE" \
+            --set image.tag="$GITHUB_SHA" \
+            --set service.type=LoadBalancer \
+            --set service.port=80 \
+            --set service.targetPort=8000 \
+            --wait \
+            --timeout 5m

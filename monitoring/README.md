@@ -37,4 +37,4 @@ Login:
 
 Notes:
 - The app `ServiceMonitor` is deployed  kustomize manifests from:
-  - `App/Kubernetes/base/service-monitor.yaml`
+  - `k8s/base/service-monitor.yaml`

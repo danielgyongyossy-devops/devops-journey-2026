@@ -1,5 +1,0 @@
-project_id   = "project-cd1ffba6-d5fa-4312-86f"
-region       = "us-central1"
-zone         = "us-central1-a"
-cluster_name = "cloud-native-app-cluster"
-registry_id  = "cloud-native-app"

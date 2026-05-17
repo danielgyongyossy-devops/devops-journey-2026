@@ -28,12 +28,25 @@ var/
 
 # Pytest
 .cache/
+.pytest_cache/
 
 # VS Code
-.vscode/
+.vscode/*
+!.vscode/settings.json
 
 # Terraform
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+
+# Local secrets and cloud credentials
+.env
+.env.*
+*.pem
+*.key
+awscliv2.zip
