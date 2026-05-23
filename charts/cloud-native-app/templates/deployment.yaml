@@ -5,7 +5,9 @@ kind: Deployment
 metadata:
   name: {{ include "cloud-native-app.fullname" . }}
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "cloud-native-app.selectorLabels" . | nindent 6 }}
@@ -19,3 +21,7 @@ spec:
           image: "{{ $image.repository | default .Chart.Name }}:{{ $image.tag | default .Chart.AppVersion }}"
           ports:
             - containerPort: {{ $service.targetPort | default 8000 }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
