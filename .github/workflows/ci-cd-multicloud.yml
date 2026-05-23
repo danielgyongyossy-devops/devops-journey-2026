@@ -137,7 +137,17 @@ jobs:
             --set service.port=80 \
             --set service.targetPort=8000 \
             --wait \
-            --timeout 5m
+            --timeout 10m
+
+      - name: Debug GKE deploy failure
+        if: failure()
+        run: |
+          kubectl get deployment "$RELEASE_NAME" -n default -o wide || true
+          kubectl get pods -n default -o wide || true
+          kubectl get hpa "$RELEASE_NAME" -n default || true
+          kubectl describe deployment "$RELEASE_NAME" -n default || true
+          kubectl describe hpa "$RELEASE_NAME" -n default || true
+          kubectl get events -n default --sort-by=.lastTimestamp | tail -n 50 || true
 
       - name: Verify HPA on GKE
         run: |
