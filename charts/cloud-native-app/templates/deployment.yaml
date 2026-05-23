@@ -5,6 +5,10 @@ kind: Deployment
 metadata:
   name: {{ include "cloud-native-app.fullname" . }}
 spec:
+  {{- with .Values.deploymentStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount | default 1 }}
   {{- end }}

@@ -30,12 +30,17 @@ ingress:
 
 resources:
   limits:
-    cpu: 500m
+    cpu: 250m
     memory: 256Mi
   requests:
-    cpu: 100m
+    cpu: 50m
     memory: 128Mi
 
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1
 
 livenessProbe:
   httpGet:
@@ -53,6 +58,6 @@ readinessProbe:
 
 autoscaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 70
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
