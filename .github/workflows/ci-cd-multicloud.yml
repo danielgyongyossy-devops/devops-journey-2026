@@ -139,6 +139,11 @@ jobs:
             --wait \
             --timeout 5m
 
+      - name: Verify HPA on GKE
+        run: |
+          kubectl get hpa "$RELEASE_NAME" -n default
+          kubectl wait --for=condition=AbleToScale "hpa/$RELEASE_NAME" -n default --timeout=120s
+
   deploy-aws:
     needs: build-aws
     if: github.event_name == 'push'
@@ -178,3 +183,8 @@ jobs:
             --set service.targetPort=8000 \
             --wait \
             --timeout 5m
+
+      - name: Verify HPA on EKS
+        run: |
+          kubectl get hpa "$RELEASE_NAME" -n default
+          kubectl wait --for=condition=AbleToScale "hpa/$RELEASE_NAME" -n default --timeout=120s
