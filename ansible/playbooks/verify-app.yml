@@ -1,0 +1,56 @@
+- name: Verify cloud-native app deployment
+  hosts: localhost
+  gather_facts: false
+  vars:
+    app_namespace: default
+    app_name: cloud-native-app
+  tasks:
+    - name: Show current Kubernetes context
+      ansible.builtin.command:
+        cmd: kubectl config current-context
+      changed_when: false
+      register: kube_context
+
+    - name: Print current context
+      ansible.builtin.debug:
+        msg: "Checking app on context: {{ kube_context.stdout }}"
+
+    - name: Check deployment
+      ansible.builtin.command:
+        cmd: kubectl get deployment {{ app_name }} -n {{ app_namespace }} -o wide
+      changed_when: false
+      register: deployment_status
+
+    - name: Check pods
+      ansible.builtin.command:
+        cmd: kubectl get pods -n {{ app_namespace }} -l app.kubernetes.io/instance={{ app_name }} -o wide
+      changed_when: false
+      register: pod_status
+
+    - name: Check HPA
+      ansible.builtin.command:
+        cmd: kubectl get hpa {{ app_name }} -n {{ app_namespace }}
+      changed_when: false
+      register: hpa_status
+
+    - name: Wait for deployment rollout
+      ansible.builtin.command:
+        cmd: kubectl rollout status deployment/{{ app_name }} -n {{ app_namespace }} --timeout=5m
+      changed_when: false
+
+    - name: Wait for HPA scaling readiness
+      ansible.builtin.command:
+        cmd: kubectl wait --for=condition=AbleToScale hpa/{{ app_name }} -n {{ app_namespace }} --timeout=120s
+      changed_when: false
+
+    - name: Print deployment status
+      ansible.builtin.debug:
+        var: deployment_status.stdout_lines
+
+    - name: Print pod status
+      ansible.builtin.debug:
+        var: pod_status.stdout_lines
+
+    - name: Print HPA status
+      ansible.builtin.debug:
+        var: hpa_status.stdout_lines

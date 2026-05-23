@@ -103,6 +103,7 @@ charts/               Helm chart used by both clouds
 k8s/                  raw Kubernetes/Kustomize manifests
 infra/terraform/gcp/  GCP infrastructure
 infra/terraform/aws/  AWS infrastructure
+ansible/              operational playbooks for monitoring and app checks
 monitoring/           Prometheus/Grafana values and notes
 .github/workflows/    GitHub Actions workflows only
 ```

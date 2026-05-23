@@ -1,0 +1,43 @@
+- name: Install Prometheus and Grafana
+  hosts: localhost
+  gather_facts: false
+  vars:
+    monitoring_namespace: monitoring
+    monitoring_release: kube-prometheus-stack
+    monitoring_values_file: ../../monitoring/kube-prometheus-stack-values.yaml
+  tasks:
+    - name: Add prometheus-community Helm repo
+      ansible.builtin.command:
+        cmd: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      changed_when: "'has been added' in helm_repo_add.stdout"
+      failed_when:
+        - helm_repo_add.rc != 0
+        - "'already exists' not in helm_repo_add.stderr"
+      register: helm_repo_add
+
+    - name: Update Helm repos
+      ansible.builtin.command:
+        cmd: helm repo update
+      changed_when: false
+
+    - name: Install or upgrade kube-prometheus-stack
+      ansible.builtin.command:
+        cmd: >
+          helm upgrade --install {{ monitoring_release }}
+          prometheus-community/kube-prometheus-stack
+          --namespace {{ monitoring_namespace }}
+          --create-namespace
+          -f {{ monitoring_values_file }}
+          --wait
+          --timeout 10m
+      changed_when: true
+
+    - name: Show monitoring pods
+      ansible.builtin.command:
+        cmd: kubectl get pods -n {{ monitoring_namespace }}
+      changed_when: false
+      register: monitoring_pods
+
+    - name: Print monitoring pods
+      ansible.builtin.debug:
+        var: monitoring_pods.stdout_lines

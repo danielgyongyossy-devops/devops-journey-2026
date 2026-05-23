@@ -45,8 +45,33 @@ jobs:
           PYTHONPATH: app
         run: pytest tests
 
-  build-gcp:
+  ansible-validate:
     needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ansible
+        run: python -m pip install ansible
+
+      - name: Install Ansible collections
+        working-directory: ansible
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Syntax check Ansible playbooks
+        working-directory: ansible
+        run: |
+          ansible-playbook playbooks/install-monitoring.yml --syntax-check
+          ansible-playbook playbooks/verify-app.yml --syntax-check
+
+  build-gcp:
+    needs: ansible-validate
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -74,7 +99,7 @@ jobs:
           docker push "$GCP_IMAGE:latest"
 
   build-aws:
-    needs: test
+    needs: ansible-validate
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
@@ -149,10 +174,16 @@ jobs:
           kubectl describe hpa "$RELEASE_NAME" -n default || true
           kubectl get events -n default --sort-by=.lastTimestamp | tail -n 50 || true
 
-      - name: Verify HPA on GKE
-        run: |
-          kubectl get hpa "$RELEASE_NAME" -n default
-          kubectl wait --for=condition=AbleToScale "hpa/$RELEASE_NAME" -n default --timeout=120s
+      - name: Install Ansible
+        run: python -m pip install ansible
+
+      - name: Install Ansible collections
+        working-directory: ansible
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Verify GKE deployment with Ansible
+        working-directory: ansible
+        run: ansible-playbook playbooks/verify-app.yml
 
   deploy-aws:
     needs: build-aws
@@ -194,7 +225,13 @@ jobs:
             --wait \
             --timeout 5m
 
-      - name: Verify HPA on EKS
-        run: |
-          kubectl get hpa "$RELEASE_NAME" -n default
-          kubectl wait --for=condition=AbleToScale "hpa/$RELEASE_NAME" -n default --timeout=120s
+      - name: Install Ansible
+        run: python -m pip install ansible
+
+      - name: Install Ansible collections
+        working-directory: ansible
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Verify EKS deployment with Ansible
+        working-directory: ansible
+        run: ansible-playbook playbooks/verify-app.yml
