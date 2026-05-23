@@ -12,6 +12,7 @@ It started on GCP, and now it also deploys to AWS. The same app image gets built
 - GCP: VPC, GKE, Artifact Registry
 - AWS: VPC, EKS, ECR
 - Helm for Kubernetes deployment
+- Kubernetes HPA (Horizontal Pod Autoscaler
 - GitHub Actions for CI/CD
 - OIDC-based auth for both clouds
 - Prometheus and Grafana for monitoring
@@ -34,6 +35,7 @@ On pushes to `main`, it:
 4. Pushes the image to Amazon ECR.
 5. Deploys to GKE with Helm.
 6. Deploys to EKS with Helm.
+7. Applies Kubernetes Horizontal Pod Autoscaling (HPA) using CPU utilization targets.
 
 Both cloud deploys use GitHub OIDC, so there are no service account JSON files or AWS access keys stored in the repo.
 
@@ -138,8 +140,10 @@ http://localhost:3000
 - [x] AWS infrastructure with Terraform
 - [x] EKS deployment with GitHub Actions
 - [x] Helm-based app deployment
+- [x] Kubernetes HPA autoscaling
 - [x] OIDC auth for GCP and AWS
 - [x] Prometheus/Grafana monitoring
+      
 
 Next things worth exploring:
 
